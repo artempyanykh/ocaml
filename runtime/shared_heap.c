@@ -1009,6 +1009,7 @@ void caml_compact_heap(caml_domain_state* domain_state,
     pool* cur_pool = heap->unswept_avail_pools[sz_class];
 
     if (!cur_pool) {
+      caml_gc_log(" size class %d: no partially filled pools", sz_class);
       /* No partially filled pools for this size, nothing to do */
       continue;
     }
@@ -1039,6 +1040,7 @@ void caml_compact_heap(caml_domain_state* domain_state,
     }
 
     if (!nonempty_blocks) {
+      caml_gc_log(" size class %d: no non-empty blocks", sz_class);
       /* No non-empty blocks in partially filled pools, nothing to do */
       continue;
     }
@@ -1174,6 +1176,7 @@ void caml_compact_heap(caml_domain_state* domain_state,
   for (int sz_class = 1; sz_class < NUM_SIZECLASSES; sz_class++) {
     pool* cur_pool = heap->unswept_avail_pools[sz_class];
     pool** last_pool_p = &heap->unswept_avail_pools[sz_class];
+    int num_freed_pools = 0;
 
     while (cur_pool) {
       pool* next_pool = cur_pool->next;
@@ -1196,12 +1199,15 @@ void caml_compact_heap(caml_domain_state* domain_state,
         #endif
 
         pool_free(heap, cur_pool, sz_class);
+	num_freed_pools += 1;
         last_pool_p = NULL;
       } else {
         last_pool_p = &cur_pool->next;
       }
       cur_pool = next_pool;
     }
+
+    caml_gc_log(" size class %d: released %d pools", sz_class, num_freed_pools);
   }
 
   CAML_EV_END(EV_COMPACT_RELEASE);
